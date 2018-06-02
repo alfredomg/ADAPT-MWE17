@@ -1,0 +1,166 @@
+1	Note	nsp
+2	:	
+3	To	
+4	run	
+5	this	
+6	application	nsp
+7	,	
+8	you	
+9	need	
+10	to	
+11	install	
+12	Java	
+13	Runtime	
+14	Environment	
+15	(	nsp
+16	JRE	nsp
+17	)	
+18	8	nsp
+19	.	nsp
+20	0	nsp
+21	.	
+
+1	If	
+2	you	
+3	do	
+4	not	
+5	have	
+6	JRE	
+7	installed	
+8	on	
+9	your	
+10	machine	nsp
+11	,	
+12	then	
+13	visit	
+14	http	nsp
+15	:	nsp
+16	/	nsp
+17	/	nsp
+18	www	nsp
+19	.	nsp
+20	oracle	nsp
+21	.	nsp
+22	com	nsp
+23	/	nsp
+24	technetwork	nsp
+25	/	nsp
+26	java	nsp
+27	/	nsp
+28	javase	nsp
+29	/	nsp
+30	downloads	nsp
+31	/	nsp
+32	jre8	nsp
+33	-	nsp
+34	downloads	nsp
+35	-	nsp
+36	2133155	nsp
+37	.	nsp
+38	html	
+39	to	
+40	download	
+41	and	
+42	install	
+43	it	nsp
+44	.	
+
+1	To	
+2	run	
+3	the	
+4	code	nsp
+5	,	
+6	from	
+7	the	
+8	command	
+9	line	
+10	try	nsp
+11	:	
+
+1	java	
+2	-	nsp
+3	jar	
+4	PARSEME	nsp
+5	.	nsp
+6	jar	
+7	Arg1	
+8	Arg2	
+
+1	where	
+2	Arg1	
+3	is	
+4	the	
+5	path	
+6	for	
+7	the	
+8	input	
+9	text	
+10	file	
+11	(	nsp
+12	once	
+13	sentence	
+14	per	
+15	line	nsp
+16	)	
+17	and	
+18	Arg2	
+19	is	
+20	the	
+21	path	
+22	for	
+23	the	
+24	output	nsp
+25	.	
+
+1	You	
+2	can	
+3	customise	
+4	the	
+5	list	
+6	of	
+7	delimiters	
+8	used	
+9	for	
+10	splitting	
+11	the	
+12	text	
+13	by	
+14	removing	
+15	or	
+16	adding	
+17	additional	
+18	Unicode	
+19	character	
+20	codes	
+21	in	
+22	the	
+23	"	nsp
+24	blanc	nsp
+25	_	nsp
+26	chars	nsp
+27	.	nsp
+28	txt	nsp
+29	"	
+30	and	
+31	"	nsp
+32	punct	nsp
+33	_	nsp
+34	chars	nsp
+35	.	nsp
+36	txt	nsp
+37	"	
+38	within	
+39	the	
+40	"	nsp
+41	resource	nsp
+42	"	
+43	directory	nsp
+44	.	
+
+1	«	nsp
+2	Έχουμε	
+3	το	
+4	πολύ	
+5	έλεγχο	nsp
+6	»	
+

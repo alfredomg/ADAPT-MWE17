@@ -1,0 +1,43 @@
+
+
+class Sentence
+--------------
+
+/*
+ * If word belongs to the sentence, returns its position in the vector sentence. If not, returns -1.
+ *
+ */
+int findWord(vector<string> sentence, string word);
+
+
+/*
+ * For each word words[i], returns its position in the vector sentence if it exists, or -1 otherwise.
+ * The positions are returned in a vector in the same order as the words.
+ *
+ */
+vector<int> findWords(vector<string> sentence, vector<string> words);
+
+
+
+class Corpus
+------------
+
+#include <unordered_map>
+
+
+- add variable member: unordered_map<string, int> freqTable;
+
+- update it when reading corpus:
+
+if (freqTable.count(word)) { /*key exist*/ 
+  freqTable[word]++;
+} else {
+  freqTable[word] = 1;
+}
+
+- question: maintain a map of words to keep or words to ignore? or only use the freqTable directly? yes probably the latter.
+
+/*
+ *
+ *
+ */

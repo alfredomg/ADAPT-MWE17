@@ -1,0 +1,8 @@
+# one Unicode character per line, use tab to add comments for the given character codes if necessary
+0020	space
+000A	a newline character: LF
+000D	CR
+0085	NEL
+2028	LS
+2029	PS 
+0009	tabulation

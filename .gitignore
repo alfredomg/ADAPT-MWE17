@@ -1,0 +1,11 @@
+sharedtask-data
+*.o
+*.project
+*.cproject
+*~
+.idea
+__pycache__/
+*.py[cod]
+slurm*.out
+*.err
+*.out
