@@ -37,6 +37,13 @@ function usage {
   echo "       files test.parsemetsv and test.conllu."
 #  echo "    -o <options for features> options for the program context-features (quoted)"
   echo "    -f force recomputing features even if already there"
+  echo "    -c <CRF directory> for the CRF CV files used for training the reranker, use"
+  echo "       the data previously generated in this directory. This is useful for"
+  echo "       example when running CV experiments with the reranker. Caution: the"
+  echo "       directory is supposed to have been generated with the same CRF parameters"
+  echo "       and the same data, of course. Ignored in testing mode."
+  echo "       Remark: unless the global model exists in <model dir>, it will be"
+  echo "               recomputed (since the directory contains only the CV files)."
   echo
 }
 
@@ -106,13 +113,14 @@ function absPath {
 
 
 OPTIND=1
-while getopts 'hfl:a:' option ; do 
+while getopts 'hfl:a:c:' option ; do 
     case $option in
 	"h" ) usage
  	      exit 0;;
 	"l" ) trainDir="$OPTARG";;
 	"a" ) testDir="$OPTARG";;
 	"f" ) forceOpt="-f";;
+	"c" ) crfDir="$OPTARG";;
  	"?" ) 
 	    echo "Error, unknow option." 1>&2
             printHelp=1;;
@@ -222,37 +230,50 @@ if [ ! -z "$trainDir" ]; then
 	exit 4
     fi
 
-    if [ -s "$modelDir/crfpp.model" ] && [ -z "$forceOpt" ]; then
-	echo "Warning: CRF model already exist, skipping" 1>&2
-    else
-	echo "Step 1: CRF, preparing for CV process"
+	if [ -s "$modelDir/crfpp.model" ] && [ -z "$forceOpt" ]; then
+	    echo "Warning: CRF model already exist, skipping" 1>&2
+	else
+	    echo "Step 1: CRF, preparing for CV process"
 
-	pushd "$workDir" >/dev/null
-	cv-prepdata.sh "$trainDirAbs" train 170128.297316 "--bio"  || exit $?
-	popd >/dev/null
+	    pushd "$workDir" >/dev/null
+	    cv-prepdata.sh "$trainDirAbs" train 170128.297316 "--bio"  || exit $?
+	    popd >/dev/null
 
-	echo "  Training global model..."
-	# also train a global model from the whole training set:
-	crf_learn  -c "$crfCValue"  "$templateDir/$crfTemplate"  "$workDir/rnd.bio"  "$modelDir/crfpp.model"  || exit $?
+	    echo "  Training global model..."
+	    # also train a global model from the whole training set:
+	    crf_learn  -c "$crfCValue"  "$templateDir/$crfTemplate"  "$workDir/rnd.bio"  "$modelDir/crfpp.model"  || exit $?
 
-    fi
+	fi
+
 
     if [ "$refCorpus" != "NONE" ]; then
 	if [ -s "$modelDir/weka.model" ] && [ -z "$forceOpt" ]; then
 	    echo "Warning: sem reranker Weka model already exist, skipping" 1>&2
 	else
 
-	    echo "Step 2: CRF, running CV process to prepare data for semantic reranker"
-	    pushd "$workDir" >/dev/null
-	    cv-runexps.sh . "$templateDirAbs/$crfTemplate" "$crfCValue" "-n 10"  || exit $?
-	    popd >/dev/null
+	    if [ ! -z "$crfDir" ]; then
+		if [ ! -d  "$crfDir" ]; then
+		    echo "Error: cannot find directory '$crfDir'" 1>&2
+		    exit 6
+		fi
+		echo "Using previous generated data for CRF from $crfDir"
+		crfDirAbs=$(absPath "$crfDir")
+		pushd "$workDir" >/dev/null
+		ln -s "$crfDirAbs/cv-top10-predictions-reranker-training.bio"
+		popd >/dev/null
+		
+	    else
+		echo "Step 2: CRF, running CV process to prepare data for semantic reranker"
+		pushd "$workDir" >/dev/null
+		cv-runexps.sh . "$templateDirAbs/$crfTemplate" "$crfCValue" "-n 10"  || exit $?
+		popd >/dev/null
 
-	    # concatenate the predictions obtained from CV to use as training for the reranker
-	    for n in $(seq 0 4); do
-		cat "$workDir/rnd.bio.tst.predict.$n"
-		echo # add empty line
-	    done >"$workDir/cv-top10-predictions-reranker-training.bio"
-	    
+		# concatenate the predictions obtained from CV to use as training for the reranker
+		for n in $(seq 0 4); do
+		    cat "$workDir/rnd.bio.tst.predict.$n"
+		    echo # add empty line
+		done >"$workDir/cv-top10-predictions-reranker-training.bio"
+	    fi
 
 	    echo "Step 3: semantic reranker"
 	    if [ ! -f "$corpusFile" ]; then
@@ -294,7 +315,12 @@ if [ ! -z "$testDir" ]; then
 	fi
 	echo "Step 3: Applying semantic reranker"
 	eval "train-test.sh -a '$workDir/crfpp-predict.bio' $forceOpt -o \"$featsOpts\" \"$workDir\" \"$modelDir/weka.model\" \"$corpusFile\" \"$wekaParams\""
+	# final output = output.parseme ready for evaluation
+    else
+	bio4eval.pl --input "$workDir/crfpp-predict.bio" --output "$workDir/output.parseme"
     fi
 
+    evaluate.py "$testDir/test.parsemetsv" "$workDir/output.parseme" >"$workDir/test-eval.out" || exit $?
+    
 fi
 
