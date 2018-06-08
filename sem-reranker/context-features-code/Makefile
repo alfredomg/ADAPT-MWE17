@@ -1,6 +1,7 @@
-all: context-features-train context-features-test print-annotated-expressions
-#all: context-main test context-features-train context-features-test
+all: single-expr-features context-features-train context-features-test print-annotated-expressions
 
+single-expr-features: single-expr-features.cpp ContextCollection.o annotatedcorpus.o annotatedsentence.o outcomes.o Context.o misc.o Sentence.o Corpus.o
+	g++ -o single-expr-features -std=c++11 ContextCollection.o annotatedcorpus.o annotatedsentence.o outcomes.o Context.o misc.o Sentence.o Corpus.o single-expr-features.cpp
 print-annotated-expressions:  print-annotated-expressions.cpp ContextCollection.o annotatedcorpus.o annotatedsentence.o outcomes.o Context.o misc.o Sentence.o Corpus.o
 	g++ -o print-annotated-expressions -std=c++11 ContextCollection.o annotatedcorpus.o annotatedsentence.o outcomes.o Context.o misc.o Sentence.o Corpus.o print-annotated-expressions.cpp
 context-features-train: context-features-train.cpp ContextCollection.o annotatedcorpus.o annotatedsentence.o outcomes.o Context.o misc.o Sentence.o Corpus.o

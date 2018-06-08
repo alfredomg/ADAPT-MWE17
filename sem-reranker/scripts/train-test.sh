@@ -72,20 +72,20 @@ wekaParams="$4"
 [ -d "$workDir" ] || mkdir "$workDir"
 
 if [ ! -z "$trainFile" ]; then # features for training
-    if [ $force -eq 1 ] || [ ! -s "$workDir/features-h.withId.tsv" ]; then
-	command="context-features-train $featsOpts \"$epFile\" \"$trainFile\" \"$workDir/features-h.withId.tsv\""
+    if [ $force -eq 1 ] || [ ! -s "$workDir/train-features-h.withId.tsv" ]; then
+	command="context-features-train $featsOpts \"$epFile\" \"$trainFile\" \"$workDir/train-features-h.withId.tsv\""
 #	echo "DEBUG: $command"  1>&2
 	eval "$command"
     fi
-    cut -f 3- "$workDir/features-h.withId.tsv" >"$workDir/features-h.tsv"
-    nbFeats=$(head -n 1 "$workDir/features-h.tsv" | wc -w)
+    cut -f 3- "$workDir/train-features-h.withId.tsv" >"$workDir/train-features-h.tsv"
+    nbFeats=$(head -n 1 "$workDir/train-features-h.tsv" | wc -w)
     if [ $nbFeats -le 1 ]; then
 	echo "Warning: no features at all, not computing weka model." 1>&2
 	echo "nope" >"$modelFile"
     else
-	cut -f 1,2 "$workDir/features-h.withId.tsv" | tail -n +2  >"$workDir/ids.tsv"
-	cat "$workDir/features-h.tsv" | sed 's/NA/?/g' | convert-to-arff.pl >"$workDir/features-h.arff"
-	weka-learn-and-apply.sh -k "$workDir/weka.output" -m "$modelFile" "$wekaParams" "$workDir/features-h.arff" "$workDir/features-h.arff" "$workDir/selfpredicted.arff"
+	cut -f 1,2 "$workDir/train-features-h.withId.tsv" | tail -n +2  >"$workDir/ids.tsv"
+	cat "$workDir/train-features-h.tsv" | sed 's/NA/?/g' | convert-to-arff.pl >"$workDir/train-features-h.arff"
+	weka-learn-and-apply.sh -k "$workDir/weka.output" -m "$modelFile" "$wekaParams" "$workDir/train-features-h.arff" "$workDir/train-features-h.arff" "$workDir/selfpredicted.arff"
 	convert-from-arff.pl <"$workDir/selfpredicted.arff" >"$workDir/selfpredicted.noId.tsv"
 	paste "$workDir/ids.tsv" "$workDir/selfpredicted.noId.tsv" >"$workDir/selfpredicted.tsv"
     fi
@@ -97,11 +97,11 @@ if [ ! -z "$testFile" ]; then # features for testing
 	echo "Error: weka model file '$modelFile' does not exist" 1>&2
 	exit 1
     fi
-    if [ $force -eq 1 ] || [ ! -s  "$workDir/features-h.withId.tsv" ]; then
-	eval "context-features-test $featsOpts \"$epFile\" \"$testFile\" \"$workDir/features-h.withId.tsv\""
+    if [ $force -eq 1 ] || [ ! -s  "$workDir/test-features-h.withId.tsv" ]; then
+	eval "context-features-test $featsOpts \"$epFile\" \"$testFile\" \"$workDir/test-features-h.withId.tsv\""
     fi
-    cut -f 3- "$workDir/features-h.withId.tsv" >"$workDir/features-h.tsv"
-    nbFeats=$(head -n 1 "$workDir/features-h.tsv" | wc -w)
+    cut -f 3- "$workDir/test-features-h.withId.tsv" >"$workDir/test-features-h.tsv"
+    nbFeats=$(head -n 1 "$workDir/test-features-h.tsv" | wc -w)
     if [ $nbFeats -le 1 ]; then
 	echo "Warning: no features at all, returning CRF predictions." 1>&2
 	print=""
@@ -118,12 +118,12 @@ if [ ! -z "$testFile" ]; then # features for testing
 	    fi
 	done > "$workDir/output.reranked"
     else
-	cut -f 1,2 "$workDir/features-h.withId.tsv" | tail -n +2 >"$workDir/ids.tsv"
-	cat "$workDir/features-h.tsv" | sed 's/NA/?/g' | convert-to-arff.pl >"$workDir/features-h.arff"
-	weka-learn-and-apply.sh -a "$modelFile" "$wekaParams" UNUSED "$workDir/features-h.arff" "$workDir/predicted.arff"
+	cut -f 1,2 "$workDir/test-features-h.withId.tsv" | tail -n +2 >"$workDir/ids.tsv"
+	cat "$workDir/test-features-h.tsv" | sed 's/NA/?/g' | convert-to-arff.pl >"$workDir/test-features-h.arff"
+	weka-learn-and-apply.sh -a "$modelFile" "$wekaParams" UNUSED "$workDir/test-features-h.arff" "$workDir/predicted.arff"
 	convert-from-arff.pl <"$workDir/predicted.arff" >"$workDir/predicted.noId.tsv"
 	paste "$workDir/ids.tsv" "$workDir/predicted.noId.tsv" >"$workDir/predicted.tsv"
-	coverageFeatColNo=$(head -n 1 "$workDir/features-h.withId.tsv" | tr '\t' '\n' | grep -n "freqExprRefCorpusMEAN" | cut -f 1 -d ':')
+	coverageFeatColNo=$(head -n 1 "$workDir/test-features-h.withId.tsv" | tr '\t' '\n' | grep -n "freqExprRefCorpusMEAN" | cut -f 1 -d ':')
 	myOpts="-c $coverageFeatColNo"
 	if [ -z "$coverageFeatColNo" ]; then
 	    echo "Warning: cannot find coverage feature column" 1>&2

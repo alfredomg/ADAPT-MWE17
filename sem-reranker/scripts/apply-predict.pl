@@ -189,6 +189,8 @@ my $analysisOutput = $opt{a};
 my $goldFileAnalysis = $opt{g};
 my $coverageCol = $opt{c};
 
+
+
 open(OUT, ">:encoding(utf-8)", $outputFile) or die "Cannot open '$outputFile'";
 
 open(F, "<:encoding(utf-8)", $wekaFile) or die "Cannot open '$wekaFile'";
@@ -288,6 +290,7 @@ if (defined($analysisOutput)) {
 		if ($seqNo == 0) { # sentence-level stuff done only for first sequence
 		    push(@sentWords, $cols->[$tokenOrLemmaCol]);
 		    if (defined($goldFileAnalysis)) {
+#			print STDERR "DEBUG goldFileAnalysis enabled\n";
 			# this is a sanity check to make sure we match the right corresponding line in the gold file
 			# update: this sanity check proved useful ;)
 			my $s1 = $cols->[$tokenOrLemmaCol];
@@ -296,9 +299,9 @@ if (defined($analysisOutput)) {
 #			print STDERR "  DEBUG GOLD: lineNo=$lineNo; cols = ".join(";",@gcols)."\n";
 			die "BUG token or lemma dont match between input ('$s1') and gold file ('$s2'), line $lineNo: ." if ($s1 ne $s2);
 			# caution: the gold BIO file has only one column for labels (8 columns total), but it's the same col no for gold
-#
 			push(@sentGold, $externIndexesGold->[$sentNo]->[$lineNo]->[$goldCol]);
 		    } else { # assuming the gold in the file:
+#			print STDERR "DEBUG goldFileAnalysis disabled, gold = ".$cols->[$goldCol]."\n";
 			push(@sentGold, $cols->[$goldCol]);
 		    }
 		}
@@ -356,10 +359,7 @@ if (defined($analysisOutput)) {
 
 
 $sentNo++;
-if ($sentNo != scalar(@sentsScores)) {
-    print STDERR "Error: sentNo=$sentNo but sentsScores contains ".scalar(@sentsScores)." sentences\n";
-    exit 1;
-}
+die "Error: sentNo=$sentNo but sentsScores contains ".scalar(@sentsScores)." sentences\n" if ($sentNo != scalar(@sentsScores));
 
 foreach my $n (sort keys %count) {
     printf("$n: $count{$n} (%7.2f%%)\n",$count{$n}*100/$total);

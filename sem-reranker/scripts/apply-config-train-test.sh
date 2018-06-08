@@ -175,9 +175,14 @@ if [ "$refCorpusOpt" != "$refCorpus" ]; then
     refCorpus=$refCorpusOpt
     featsOpts="$featsOpts -l 1"
 else
-    featsOpts="$featsOpts -l 1"
+    featsOpts="$featsOpts -l 0"
 fi
 corpusFile="$refDataDir/$refCorpus"
+
+if [ ! -f "$corpusFile" ]; then
+    echo "Error: no reference data $corpusFile" 1>&2
+    exit 6
+fi
 
 readFromParamFile "$configFile" "crfTemplate"
 readFromParamFile "$configFile" "crfCValue"
@@ -206,67 +211,90 @@ featsOpts="$featsOpts -m $minFreq -n $nMostFreq -w $halfWindowSize -c $normalize
 [ -d "$workDir" ] || mkdir "$workDir"
 [ -d "$modelDir" ] || mkdir "$modelDir"
 
-if [ -d "$trainDir" ]; then
+trainDirAbs=$(absPath "$trainDir")
+templateDirAbs=$(absPath "$templateDir")
+modelDirAbs=$(absPath "$modelDir")
+
+
+if [ ! -z "$trainDir" ]; then
     if [ ! -f "$trainDir/train.parsemetsv" ] || [ ! -f "$trainDir/train.conllu" ] ; then
 	echo "Error: $trainDir does not contain train.parsemetsv and train.conllu" 1>&2
 	exit 4
     fi
 
-    if [ -s "$modelDir/weka.model" ] && [ -s "$modelDir/crfpp.model" ] && [ -z "$forceOpt" ]; then
-	echo "Warning: models already exist, skipping" 1>&2
+    if [ -s "$modelDir/crfpp.model" ] && [ -z "$forceOpt" ]; then
+	echo "Warning: CRF model already exist, skipping" 1>&2
     else
 	echo "Step 1: CRF, preparing for CV process"
 
-	trainDir0=$(absPath "$trainDir")
-	templateDir0=$(absPath "$templateDir")
 	pushd "$workDir" >/dev/null
-	cv-prepdata.sh "$trainDir0" train 170128.297316 "--bio"  || exit $?
-	exit 5
-
-	echo "Step 2: CRF, running CV process"
-#	cv-runexps.sh . "$templateDir0/$crfTemplate" "$crfCValue" "-n 10"  || exit $?
+	cv-prepdata.sh "$trainDirAbs" train 170128.297316 "--bio"  || exit $?
+	popd >/dev/null
 
 	echo "  Training global model..."
 	# also train a global model from the whole training set:
-	echo crf_learn  -c "$crfCValue"  "$templateDir0/$crfTemplate"  "rnd.bio"  "$modelDir/crfpp.model"  || exit $?
-	popd >/dev/null
-	echo "temp stop bug"
-	exit 3
+	crf_learn  -c "$crfCValue"  "$templateDir/$crfTemplate"  "$workDir/rnd.bio"  "$modelDir/crfpp.model"  || exit $?
 
-	# concatenate the predictions obtained from CV to use as training for the reranker
-	for n in $(seq 0 4); do
-	    cat "$workDir/rnd.bio.tst.predict.$n"
-	    echo # add empty line
-	done >"$workDir/cv-top10-predictions-reranker-training.bio"
-    
-
-	echo "Step 3: semantic reranker"
-	if [ ! -f "$corpusFile" ]; then
-	    echo "Warning: no corpus file '$corpusFile' found, skipping reranker" 1>&2
-	else
-	    eval "train-test.sh -l '$workDir/cv-top10-predictions-reranker-training.bio' $forceOpt -o \"$featsOpts\" \"$workDir\" \"$modelDir/weka.model\" \"$corpusFile\" \"$wekaParams\""
-	fi
-    
     fi
-    
+
+    if [ "$refCorpus" != "NONE" ]; then
+	if [ -s "$modelDir/weka.model" ] && [ -z "$forceOpt" ]; then
+	    echo "Warning: sem reranker Weka model already exist, skipping" 1>&2
+	else
+
+	    echo "Step 2: CRF, running CV process to prepare data for semantic reranker"
+	    pushd "$workDir" >/dev/null
+	    cv-runexps.sh . "$templateDirAbs/$crfTemplate" "$crfCValue" "-n 10"  || exit $?
+	    popd >/dev/null
+
+	    # concatenate the predictions obtained from CV to use as training for the reranker
+	    for n in $(seq 0 4); do
+		cat "$workDir/rnd.bio.tst.predict.$n"
+		echo # add empty line
+	    done >"$workDir/cv-top10-predictions-reranker-training.bio"
+	    
+
+	    echo "Step 3: semantic reranker"
+	    if [ ! -f "$corpusFile" ]; then
+		echo "Warning: no corpus file '$corpusFile' found, skipping reranker" 1>&2
+	    else
+		eval "train-test.sh -l '$workDir/cv-top10-predictions-reranker-training.bio' $forceOpt -o \"$featsOpts\" \"$workDir\" \"$modelDir/weka.model\" \"$corpusFile\" \"$wekaParams\""
+	    fi
+	    
+	fi
+    fi
 fi
 
-if [ -d "$testDir" ]; then
-    if [ ! -d "$testDir/test.parsemetsv" ] || [ ! -d "$testDir/test.conllu" ] ; then
+if [ ! -z "$testDir" ]; then
+    if [ ! -f "$testDir/test.parsemetsv" ] || [ ! -f "$testDir/test.conllu" ] ; then
 	echo "Error: $testDir does not contain test.parsemetsv and test.conllu" 1>&2
 	exit 4
     fi
-
-fi
-
-
-	
-    elif [ "$trainTest" == "test" ]; then
-	eval "train-test.sh -a '$inputFile' $forceOpt -o \"$featsOpts\" \"$workDir\" \"$modelFile\" \"$corpusFile\" \"$wekaParams\""
-    else
-	echo "Error: invalid parameter '$trainTest', must be either 'train' or 'test' " 1>&2
-	exit 3
+    if [ ! -s "$modelDir/crfpp.model" ]; then
+	echo "Error: no CRF++ model found in $modelDir" 1>&2
+	exit 5
     fi
-else  # case where EP is not available, don't call anything
+
+    echo "Step 1: converting to internal bio format"
+    parseme2bio.pl --ptsv "$testDir/test.parsemetsv" "$testDir/test.conllu" --output "$workDir/test-input.bio" --bio || exit $?
+
+    
+    echo "Step 2: Applying CRF model"
+    testOpts=""
+    if [ "$refCorpus" != "NONE" ]; then
+	testOpts="-n 10"
+    fi
+    eval "crf_test $testOpts -m \"$modelDir/crfpp.model\" -c \"$crfCValue\" -o \"$workDir/crfpp-predict.bio\" \"$workDir/test-input.bio\"" || exit $?
+
+
+    if [ "$refCorpus" != "NONE" ]; then
+	if [ ! -s "$modelDir/weka.model" ]; then
+	    echo "Error: no Weka model (semantic reranker) found in $modelDir" 1>&2
+	    exit 5
+	fi
+	echo "Step 3: Applying semantic reranker"
+	eval "train-test.sh -a '$workDir/crfpp-predict.bio' $forceOpt -o \"$featsOpts\" \"$workDir\" \"$modelDir/weka.model\" \"$corpusFile\" \"$wekaParams\""
+    fi
+
 fi
 
