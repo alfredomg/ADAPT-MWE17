@@ -40,14 +40,16 @@ int main(int argc, char * argv[]){
   cout << endl;
 
   // build corpus
-  Corpus corpus(corpusFile, stoi(options["minFreq"]), stoi(options["removeNMostFreq"]), options["simMeasureId"]);
-  Context exprContext(words, stoi(options["halfWindowSize"]), 0, stoi(options["normalizeContext"]), corpus);
+
+  Corpus corpus(corpusFile, stoi(options["useLemma"]), stoi(options["minFreq"]), stoi(options["removeNMostFreq"]), options["simMeasureId"]);
+  Context exprContext(words, stoi(options["halfWindowSize"]), 0, stoi(options["normalizeContext"]),  stoi(options["windowIncludeWordsINexpr"]), stoi(options["windowMultipleOccurrencesPosition"]), &corpus);
   //  exprContext.prntContext(false);
   //  vector<Context> empty; // temp
-  vector<double> feats= exprContext.internalFeatures();
+  exprContext.computeInternalFeatures(NULL, options["featGroups"], options["featTypes"], options["featStd"], stoi(options["featsOnlyMean"]));
+  vector<double> feats= exprContext.getInternalFeatures();
   vector<vector<double>> all;
   all.push_back(feats);
-  vector<string> names = exprContext.internalFeaturesNames();
+  vector<string> names = internalFeaturesNames(options["featGroups"], options["featTypes"], options["featStd"], stoi(options["featsOnlyMean"]));
   writeArff("test.arff", names, all);
   
 }

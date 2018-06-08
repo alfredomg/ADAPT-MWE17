@@ -40,54 +40,49 @@ outcomes::outcomes(int id, double confi) {
 
 
 void outcomes::addWord(string w, string label) {
-	locale loc;
+  locale loc;
 
-	//	cout << "addWord: word="<<w <<"; label= "<<label << endl;
-	if (label != "_"){
-
-	  if (isdigit(label[0], loc) || (label == "B") || (label == "I")) { // valid labels: either int number or B or I (from BIO format)
-	    int lab;
-	    if (isdigit(label[0], loc)) {
-	      lab = stoi(label);
-	    } else { // label == B or label == I
-	      //	      cout << "label="<<label<<" for word "<<w<<"\n";
-	      // increase expression number if meeting new expression in BIO format, except if it's the first in the sentence
-	      // this way the first expression has number 0 whether it starts with label B  (as it's supposed to) or I (frequent in CRF predictions)
-	      if ((label == "B") && expression.size()>0) { 
-		exprNoForBIOFormat++;
-	      }
-	      lab = exprNoForBIOFormat;
-	    }
-	    //	    cout << "new tagged word: word="<<w <<"; label= "<<label<<"; lab=" << lab << endl;
-
-	    unordered_map<int, vector<string>>::iterator found = expression.find(lab);
-	    
-	    if(found == expression.end()){
-
-	      vector<string> exprssns (1,w);// push back already. (size, the input).
-	      expression[lab] = exprssns;
-
-	    }else{
-
-	      pushback(found->second, w);
-	      //				found->second.push_back(w);
-	    }
-	  } else {
-
-	    cout << "Invalid label: tt's not _, not a number and not B or I !" << endl;
-	    exit(1);
-	  }
-	  //		print();
-
+  //		cout << "addWord: word="<<w <<"; label= "<<label << endl;
+  if (label != "_"){
+    //    cerr << "addWord: word="<<w <<"; label= "<<label << endl;
+	  
+    if (isdigit(label[0], loc) || (label == "B") || (label == "I")) { // valid labels: either int number or B or I (from BIO format)
+      int lab;
+      if (isdigit(label[0], loc)) {
+	lab = stoi(label);
+      } else { // label == B or label == I
+	//	      cout << "label="<<label<<" for word "<<w<<"\n";
+	// increase expression number if meeting new expression in BIO format, except if it's the first in the sentence
+	// this way the first expression has number 0 whether it starts with label B  (as it's supposed to) or I (frequent in CRF predictions)
+	if ((label == "B") && expression.size()>0) { 
+	  exprNoForBIOFormat++;
 	}
+	lab = exprNoForBIOFormat;
+      }
+      //cerr << "new tagged word: word="<<w <<"; label= "<<label<<"; lab=" << lab << endl;
+
+      unordered_map<int, vector<string>>::iterator found = expression.find(lab);
+	    
+      if(found == expression.end()){
+
+	vector<string> exprssns (1,w);// push back already. (size, the input).
+	expression[lab] = exprssns;
+
+      }else{
+	found->second.push_back(w);
+	//				found->second.push_back(w);
+      }
+    } else {
+
+      cout << "Invalid label: tt's not _, not a number and not B or I !" << endl;
+      exit(1);
+    }
+    //    print();
+
+  }
 }
 
 
-void outcomes::pushback(vector<string> &v, string w) {
-
-		v.push_back(w);
-
-}
 
 
 void outcomes::print() {
@@ -101,6 +96,7 @@ void outcomes::print() {
 }
 
 unordered_map<int, vector<string>> &outcomes::getExprMap() {
+  //  cerr << "DEBUG returning expr map, size = "<<expression.size()<<endl;
   return expression;
 }
 

@@ -254,7 +254,7 @@ vector<string> parseOptions(int argc, char * argv[], unordered_map<string,string
 
 
 
-void printStringVector(vector<string> &v) {
+void printStringVector(const vector<string> &v) {
 	cout << "[";
 	if (v.size()>0) {
 		cout << v[0];
@@ -284,16 +284,16 @@ void writeArff(string filename, vector<string> featuresNames, vector<vector<doub
 	//myfile.open (filename);
 	//myfile << "Writing this to a file.\n";
 	//myfile.close();
-	cerr << "TEMPORARY OUTPUT TO SCREEN"<<endl;
+	cerr << "writeArff: not implemented, temporary output to STDOUT"<<endl;
 	for (string name:featuresNames) {
-		cerr << name << "\t";
+		cout << name << "\t";
 	}
 	cerr << endl;
 	for (vector<double> instance: features) {
 		for (double val : instance) {
-			cerr << val << "\t";
+			cout << val << "\t";
 		}
-		cerr << endl;
+		cout << endl;
 	}
 
 }

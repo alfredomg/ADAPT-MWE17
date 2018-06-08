@@ -28,7 +28,7 @@ public:
   outcomes *getOutcomes(int i);
   int getNbOutcomes();
   vector<vector<double>> computeFeatures(bool featConfidence, string featGroups, string featTypes, string featStd, bool featsOnlyMean,bool trainingMode,int sentNo);
-  
+  void printNbGoldAndPred();  
 
 
 private:

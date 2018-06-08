@@ -21,7 +21,7 @@ void usage(string mainArgs, unordered_map<string,string> options);
 unordered_map<string,string> initDefaultOptions();
 void printStringStringMap(unordered_map<string,string> m);
 vector<string> parseOptions(int argc, char * argv[], unordered_map<string,string> &options, string usageStr, int minArgs, int maxArgs);
-void printStringVector(vector<string> &v);
+void printStringVector(const vector<string> &v);
 void printDoubleVector(vector<double> &v);
 void writeArff(string filename, vector<string> featuresNames, vector<vector<double>> features);
 vector<double> vectorStats(vector<double> values) ;

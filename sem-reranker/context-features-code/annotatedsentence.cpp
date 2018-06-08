@@ -23,18 +23,17 @@ bool annotatedsentence::isEmpty() {
 }
 
 void annotatedsentence::addOutcome(int id, double confi) {
-	//cout << "confi="<<confi<<endl;
 	outcomes currentOutcome = outcomes(id, confi);
 	pssble_sntncs.push_back(currentOutcome);
 }
 
 void annotatedsentence::addWord(string word, string goldlabel, string predict) {
 	if (pssble_sntncs.size()==1) { // first outcome: store the gold answer as well
-	  //	  	 		cout << "GOLD"<<endl;
+	  //	  cout << "GOLD"<<endl;
 		gold.addWord(word,goldlabel);
 
 	}
-	//			cout << "PREDICT "<<pssble_sntncs.size()-1 <<endl;
+	//	cout << "PREDICT "<<pssble_sntncs.size()-1 <<endl;
 	pssble_sntncs[pssble_sntncs.size()-1].addWord(word,predict);
 }
 
@@ -59,6 +58,16 @@ outcomes *annotatedsentence::getOutcomes(int i) {
 
 int annotatedsentence::getNbOutcomes() {
   return pssble_sntncs.size();
+}
+
+void annotatedsentence::printNbGoldAndPred() {
+  cout << "gold: "<< gold.getExprMap().size();
+  for (int i=0; i<pssble_sntncs.size(); i++) {
+    cout<< "; " << i <<": "<<pssble_sntncs[i].getExprMap().size();
+  }
+  cout << endl;
+    
+  
 }
 
 

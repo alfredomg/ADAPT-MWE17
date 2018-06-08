@@ -81,6 +81,9 @@ annotatedcorpus::annotatedcorpus(string file, int useLemma, int withPOS) {
 						sentences.push_back(copy);
 						ignoreTokenRangeEnd = - 1; // reset range
 						currentSent.clear();
+
+						// debugging:
+						//	copy.printNbGoldAndPred() ;
 						/*
 						cout << "DEBUG last alternative sequence (outcome) "<<copy.getOutcomes().size()-1<<" , sequence was = ";
 						copy.getOutcomes().at(copy.getOutcomes().size()-1).print();
@@ -118,7 +121,7 @@ annotatedcorpus::annotatedcorpus(string file, int useLemma, int withPOS) {
 
 			  vector<string> columns = getColValues(line);
 
-			  if (columns.size() < 9) {
+			  if (columns.size() != 9) {
 			    cerr << "Error: wrong number of columns\n";
 			    exit(3);
 			  }
@@ -135,6 +138,8 @@ annotatedcorpus::annotatedcorpus(string file, int useLemma, int withPOS) {
 			    string prdctd = columns[8];
 			    //			    cerr << "DEBUG: adding word '"<<word <<"' to sentence; gold="<<gold<<"; pred="<<prdctd<<endl;
 			    currentSent.addWord(word, gold, prdctd);
+
+
 			  }
 
 			}
@@ -155,7 +160,9 @@ annotatedcorpus::annotatedcorpus(string file, int useLemma, int withPOS) {
 
 	}
 
-
+	//	for (annotatedsentence s : sentences) {
+	//  s.printNbGoldAndPred() ;
+	//	}
 }
 
 
