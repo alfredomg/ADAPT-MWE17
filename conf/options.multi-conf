@@ -1,0 +1,39 @@
+
+# Configuration file for Adapt system MWE17
+# Erwan Moreau June 2018
+
+
+#### PART 1: CRF parameters
+
+# crfTemplate: template filename for CRF++
+#   Note: the directory where templates files are found is supplied as an argument
+crfTemplate=dep14.template dep14_template_ic2 dep14_template_ic3
+
+# C-value for CRF++
+crfCValue=1.0 10.0
+
+
+
+#### PART 2: semantic reranker parameters
+
+# refCorpus: corpus to use as "reference data" for the semantic reranker.
+#   Indicate 'NONE' to use only the CRF component (no semantic reranker)
+#   Use <filename>:lemma to use the lemma column in the official training data
+#   pre-tokenized Europarl data can be used, see README.md.
+#   Note: the directory where ref data files are found is supplied as an argument
+refCorpus=vmwe17.conllu vmwe17.conllu:lemma europarl-v7.generic.tok europarl-v7.vmwe17-trained.tok
+
+minFreq=0 3 5
+nMostFreq=0 50 100
+halfWindowSize=0 2 3 4
+normalizeContexts=0 1
+simMeasure=minmax cosineIDF cosine jaccard
+minConfidence=0.01 0.05 0.1
+onlyMean=0 1
+learnMethod=M5P-M4
+windowIncludeWordsINexpr=0 1
+windowMultipleOccurrencesPosition=0 1
+featConfidence=1
+featGroups=000 001 010 011 100 101 110 111
+featTypes=00 01 10 11
+featStd=1111
