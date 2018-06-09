@@ -315,12 +315,12 @@ if [ ! -z "$testDir" ]; then
 	fi
 	echo "Step 3: Applying semantic reranker"
 	eval "train-test.sh -a '$workDir/crfpp-predict.bio' $forceOpt -o \"$featsOpts\" \"$workDir\" \"$modelDir/weka.model\" \"$corpusFile\" \"$wekaParams\""
-	# final output = output.parseme ready for evaluation
+	# final output = output.parsemetsv ready for evaluation
     else
-	bio4eval.pl --input "$workDir/crfpp-predict.bio" --output "$workDir/output.parseme"
+	bio4eval.pl --input "$workDir/crfpp-predict.bio" --output "$workDir/output.parsemetsv"
     fi
 
-    evaluate.py "$testDir/test.parsemetsv" "$workDir/output.parseme" >"$workDir/test-eval.out" || exit $?
+    evaluate.py "$testDir/test.parsemetsv" "$workDir/output.parsemetsv" >"$workDir/test-eval.out" || exit $?
     
 fi
 

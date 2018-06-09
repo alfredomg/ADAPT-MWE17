@@ -134,6 +134,6 @@ if [ ! -z "$testFile" ]; then # features for testing
 	fi
 	eval "apply-predict.pl $myOpts -a \"$workDir/analysis.tsv\" \"$workDir/predicted.tsv\"  \"$testFile\" \"$workDir/output.reranked\""
     fi
-    bio4eval.pl --input "$workDir/output.reranked" --output "$workDir/output.parseme"
+    bio4eval.pl --input "$workDir/output.reranked" --output "$workDir/output.parsemetsv"
 fi
 
