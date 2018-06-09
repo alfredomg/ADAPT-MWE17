@@ -15,18 +15,33 @@ From the main directory run:
 ```
 source setup-path.sh
 ```
+
 This will compile the code if needed and add the relevant directories to `PATH`.
 
 ## Usage
 
 
+###
+
+# Details
+
 ## Configuration files
 
-The scripts are meant to be used with configuration files which contain values for the parameters. Examples can be found in directory `conf`. Additionally, a batch of configuration can be generated using:
+The scripts are meant to be used with configuration files which contain values for the parameters. Examples can be found in the directory `conf`. Additionally, a batch of configuration files can be generated using e.g.:
 
 ```
+# caution: generates almost 2 millions config files
+mkdir configs; echo conf/options.multi-conf | expand-multi-config.pl configs/ 
+```
+
+In order to generate a different set of configurations, either customize the values that a parameter can take in `conf/options.multi-conf` or use the `-r` option to generate a random subset of config files, e.g.:
 
 ```
+# generate a random 50 config files
+mkdir configs; echo conf/options.multi-conf | expand-multi-config.pl -r 50 configs/ 
+```
+
+
 
 ## Reference data
 
@@ -34,9 +49,6 @@ The scripts are meant to be used with configuration files which contain values f
 * If using the training set as reference data, set `refCorpus=train.conllu` in the config file and specify the input directory containing the shared task data as "reference data dir".
 
 
-## 
-
-# Details
 
 ## semantic-reranker/context-features-code
 
