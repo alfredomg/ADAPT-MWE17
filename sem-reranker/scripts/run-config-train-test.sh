@@ -187,7 +187,7 @@ else
 fi
 corpusFile="$refDataDir/$refCorpus"
 
-if [ ! -f "$corpusFile" ]; then
+if [ "$refCorpus" != "NONE" ] && [ ! -f "$corpusFile" ]; then
     echo "Error: no reference data $corpusFile" 1>&2
     exit 6
 fi
@@ -297,7 +297,7 @@ if [ ! -z "$testDir" ]; then
     fi
 
     echo "Step 1: converting to internal bio format"
-    parseme2bio.pl --ptsv "$testDir/test.parsemetsv" "$testDir/test.conllu" --output "$workDir/test-input.bio" --bio || exit $?
+    parseme2bio.pl --ptsv "$testDir/test.parsemetsv" -conll "$testDir/test.conllu" --output "$workDir/test-input.bio" --bio || exit $?
 
     
     echo "Step 2: Applying CRF model"
