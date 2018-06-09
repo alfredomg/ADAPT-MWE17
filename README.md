@@ -20,12 +20,29 @@ This will compile the code if needed and add the relevant directories to `PATH`.
 ## Usage
 
 
-TODO
+## Configuration files
+
+The scripts are meant to be used with configuration files which contain values for the parameters. Examples can be found in directory `conf`. Additionally, a batch of configuration can be generated using:
+
+```
+
+```
+
+## Reference data
+
+* Reference data, including pre-tokenized Europarl corpus for most languages, can be downloaded from **TODO**
+* If using the training set as reference data, set `refCorpus=train.conllu` in the config file and specify the input directory containing the shared task data as "reference data dir".
 
 
-### Reranker feature extraction
+## 
 
-The semantic reranker consists of two main steps: feature extraction and supervised learning. The former produces features for each of the 10 candidate labelings provided by the CRF component for every sentence. The latter trains or applies a Weka model using said features; the model is meant to score every candidate, so that the highest score can be selected as the best prediction.
+# Details
+
+## semantic-reranker/context-features-code
+
+This is the C++ code which extracts the features for the semantic reranking. The semantic reranker consists of two main steps: feature extraction and supervised learning. The former produces features for each of the 10 candidate labelings provided by the CRF component for every sentence. The latter trains or applies a Weka model using said features; the model is meant to score every candidate, so that the highest score can be selected as the best prediction.
+
+Remark: this behaviour means that the reranker has to be trained on (top 10) data predicted by the CRF++ component. Therefore the training stage requires to cross-validation by CRF++, in order to obtain realistic top 10 predictions on the training set.
 
 * Training
   * `context-features-train` produces the features, together with the gold label for every candidate labeling;
