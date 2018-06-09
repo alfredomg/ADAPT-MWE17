@@ -21,7 +21,22 @@ This will compile the code if needed and add the relevant directories to `PATH`.
 ## Usage
 
 
-###
+### Simple training + testing
+
+From the main directory:
+
+```
+run-config-train-test.sh -l sharedtask-data/FR -a sharedtask-data/FR conf/default.conf crf/templates/ reference-data/FR/ model output
+```
+
+* `-l` (learn) for training using the training data provided in the directory
+* `-a` (apply) for testing using the test data provided in the directory
+* using configuration file `conf/default.conf`
+* `reference-data` contains the reference data (see link above)
+* `model` will contain the model at the end of the process
+* `output` is the "work directory"; at the end of the testing process it contains:
+  * The predictions in `parsemetsv` format are stored in `<work dir>/output.parsemetsv`
+  * Evaluation results are stored in `<work dir>/test-eval.out`.
 
 # Details
 
