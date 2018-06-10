@@ -6,11 +6,11 @@ progName=$(basename "$BASH_SOURCE")
 forceOpt=""
 featsOpts=""
 
-refCorpusColNo=
+prevCRFData=""
 
 function usage {
   echo
-  echo "Usage: $progName [options] <config file> <template dir> <ref data dir> <model dir> <work dir>"
+  echo "Usage: $progName [options] <config file> <template dir> <ref data dir> <model dir> <output dir>"
   echo
   echo "  <template dir> is a directory containing the template file to use with CRF++"
   echo "  It can contain several files, the one to be used is specified in the config file"
@@ -37,13 +37,14 @@ function usage {
   echo "       files test.parsemetsv and test.conllu."
 #  echo "    -o <options for features> options for the program context-features (quoted)"
   echo "    -f force recomputing features even if already there"
-  echo "    -c <CRF directory> for the CRF CV files used for training the reranker, use"
-  echo "       the data previously generated in this directory. This is useful for"
-  echo "       example when running CV experiments with the reranker. Caution: the"
-  echo "       directory is supposed to have been generated with the same CRF parameters"
-  echo "       and the same data, of course. Ignored in testing mode."
-  echo "       Remark: unless the global model exists in <model dir>, it will be"
-  echo "               recomputed (since the directory contains only the CV files)."
+  echo "    -p <prev model dir>:<prev output dir> skip the CRF part in training mode:"
+  echo "       use the CRF model found in <prev model dir> and the CRF cross-validated"
+  echo "       predictions found in <prev output dir> to train the semantic"
+  echo "       reranker; the two parts can be found from a previous run, hence saving"
+  echo "       recomputing the same CRF model/predictions, e.g. when running CV."
+  echo "       Caution: the parts are supposed to have been generated with the"
+  echo "                same CRF parameters and the same data."
+  echo "       Ignored in testing mode."
   echo
 }
 
@@ -113,14 +114,14 @@ function absPath {
 
 
 OPTIND=1
-while getopts 'hfl:a:c:' option ; do 
+while getopts 'hfl:a:p:' option ; do 
     case $option in
 	"h" ) usage
  	      exit 0;;
 	"l" ) trainDir="$OPTARG";;
 	"a" ) testDir="$OPTARG";;
 	"f" ) forceOpt="-f";;
-	"c" ) crfDir="$OPTARG";;
+	"p" ) prevCRFData="$OPTARG";;
  	"?" ) 
 	    echo "Error, unknow option." 1>&2
             printHelp=1;;
@@ -230,6 +231,30 @@ if [ ! -z "$trainDir" ]; then
 	exit 4
     fi
 
+    if [ ! -z "$prevCRFData" ]; then
+	if echo "$prevCRFData" | grep -v ":" >/dev/null; then
+	    echo "Error: -p argument must contain ':'" 1>&2
+	    exit 6
+	fi
+	prevModelDir=${prevCRFData%:*}
+	prevWorkDir=${prevCRFData#*:}
+	if [ ! -d  "$prevModelDir" ] || [ ! -d  "$prevWorkDir" ]; then
+	    echo "Error: cannot find directory '$prevModelDir' and/or '$prevWorkDir'" 1>&2
+	    exit 6
+	fi
+	rm -f "$modelDir/crfpp.model"
+	cp "$prevModelDir/crfpp.model" "$modelDir"
+	prevWorkDirAbs=$(absPath "$prevWorkDir")
+	pushd "$workDir" >/dev/null
+	for n in $(seq 0 4); do
+	    rm -rf "$n"
+	    ln -s "$prevWorkDirAbs/$n"
+	done
+	rm -f "cv-top10-predictions-reranker-training.bio"
+	ln -s "$prevWorkDirAbs/cv-top10-predictions-reranker-training.bio"
+	popd >/dev/null
+    else
+
 	if [ -s "$modelDir/crfpp.model" ] && [ -z "$forceOpt" ]; then
 	    echo "Warning: CRF model already exist, skipping" 1>&2
 	else
@@ -244,26 +269,15 @@ if [ ! -z "$trainDir" ]; then
 	    crf_learn  -c "$crfCValue"  "$templateDir/$crfTemplate"  "$workDir/rnd.bio"  "$modelDir/crfpp.model"  || exit $?
 
 	fi
-
-
+    fi
+    
     if [ "$refCorpus" != "NONE" ]; then
 	if [ -s "$modelDir/weka.model" ] && [ -z "$forceOpt" ]; then
 	    echo "Warning: sem reranker Weka model already exist, skipping" 1>&2
 	else
-
-	    if [ ! -z "$crfDir" ]; then
-		if [ ! -d  "$crfDir" ]; then
-		    echo "Error: cannot find directory '$crfDir'" 1>&2
-		    exit 6
-		fi
-		echo "Using previous generated data for CRF from $crfDir"
-		crfDirAbs=$(absPath "$crfDir")
-		pushd "$workDir" >/dev/null
-		ln -s "$crfDirAbs/cv-top10-predictions-reranker-training.bio"
-		popd >/dev/null
-		
-	    else
+	    if [ -z "$prevWorkDir" ]; then
 		echo "Step 2: CRF, running CV process to prepare data for semantic reranker"
+
 		pushd "$workDir" >/dev/null
 		cv-runexps.sh . "$templateDirAbs/$crfTemplate" "$crfCValue" "-n 10"  || exit $?
 		popd >/dev/null
@@ -274,12 +288,12 @@ if [ ! -z "$trainDir" ]; then
 		    echo # add empty line
 		done >"$workDir/cv-top10-predictions-reranker-training.bio"
 	    fi
-
+	    
 	    echo "Step 3: semantic reranker"
 	    if [ ! -f "$corpusFile" ]; then
 		echo "Warning: no corpus file '$corpusFile' found, skipping reranker" 1>&2
 	    else
-		eval "train-test.sh -l '$workDir/cv-top10-predictions-reranker-training.bio' $forceOpt -o \"$featsOpts\" \"$workDir\" \"$modelDir/weka.model\" \"$corpusFile\" \"$wekaParams\""
+		eval "sem-reranker-train-test.sh -l '$workDir/cv-top10-predictions-reranker-training.bio' $forceOpt -o \"$featsOpts\" \"$workDir\" \"$modelDir/weka.model\" \"$corpusFile\" \"$wekaParams\""
 	    fi
 	    
 	fi
@@ -314,7 +328,7 @@ if [ ! -z "$testDir" ]; then
 	    exit 5
 	fi
 	echo "Step 3: Applying semantic reranker"
-	eval "train-test.sh -a '$workDir/crfpp-predict.bio' $forceOpt -o \"$featsOpts\" \"$workDir\" \"$modelDir/weka.model\" \"$corpusFile\" \"$wekaParams\""
+	eval "sem-reranker-train-test.sh -a '$workDir/crfpp-predict.bio' $forceOpt -o \"$featsOpts\" \"$workDir\" \"$modelDir/weka.model\" \"$corpusFile\" \"$wekaParams\""
 	# final output = output.parsemetsv ready for evaluation
     else
 	bio4eval.pl --input "$workDir/crfpp-predict.bio" --output "$workDir/output.parsemetsv"
