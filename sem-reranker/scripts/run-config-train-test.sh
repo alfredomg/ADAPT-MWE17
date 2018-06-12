@@ -5,7 +5,7 @@ progName=$(basename "$BASH_SOURCE")
 
 forceOpt=""
 
-prevCRFData=""
+onlyCRF=""
 
 function usage {
   echo
@@ -27,14 +27,16 @@ function usage {
   echo "       files test.parsemetsv and test.conllu."
 #  echo "    -o <options for features> options for the program context-features (quoted)"
   echo "    -f force recomputing features even if already there"
-  echo "    -p <prev model dir>:<prev output dir> skip the CRF part in training mode:"
-  echo "       use the CRF model found in <prev model dir> and the CRF cross-validated"
-  echo "       predictions found in <prev output dir> to train the semantic"
-  echo "       reranker; the two parts can be found from a previous run, hence saving"
-  echo "       recomputing the same CRF model/predictions, e.g. when running CV."
-  echo "       Caution: the parts are supposed to have been generated with the"
-  echo "                same CRF parameters and the same data."
-  echo "       Ignored in testing mode."
+#  echo "    -p <prev model dir>:<prev output dir> skip the CRF part in training mode:"
+#  echo "       use the CRF model found in <prev model dir> and the CRF cross-validated"
+#  echo "       predictions found in <prev output dir> to train the semantic"
+#  echo "       reranker; the two parts can be found from a previous run, hence saving"
+#  echo "       recomputing the same CRF model/predictions, e.g. when running CV."
+#  echo "       Caution: the parts are supposed to have been generated with the"
+#  echo "                same CRF parameters and the same data."
+#  echo "       Ignored in testing mode."
+  echo "    -c perform only CRF in training mode; this is a equivalent to seting "
+  echo "       refCorpus=NONE in the config file; ignored in testing mode."
   echo
 }
 
@@ -104,14 +106,15 @@ function absPath {
 
 
 OPTIND=1
-while getopts 'hfl:a:p:' option ; do 
+while getopts 'hfl:a:c' option ; do 
     case $option in
 	"h" ) usage
  	      exit 0;;
 	"l" ) trainDir="$OPTARG";;
 	"a" ) testDir="$OPTARG";;
 	"f" ) forceOpt="-f";;
-	"p" ) prevCRFData="$OPTARG";;
+#	"p" ) prevCRFData="$OPTARG";;
+	"c" ) onlyCRF="yep";;
  	"?" ) 
 	    echo "Error, unknow option." 1>&2
             printHelp=1;;
@@ -146,15 +149,18 @@ if [ ! -d "$templateDir" ]; then
     echo "Error: no directory '$templateDir' found" 1>&2
     exit 2
 fi
-if [ ! -d "$refDataDir" ]; then
+if [ -z "$onlyCRF" ] && [ ! -d "$refDataDir" ]; then
     echo "Error: no directory '$refDataDir' found" 1>&2
     exit 2
 fi
 
 [ -d "$workDir" ] || mkdir "$workDir"
 
-
-readFromParamFile "$configFile" "refCorpus"
+if [ -z "$onlyCRF" ]; then
+    readFromParamFile "$configFile" "refCorpus"
+else
+    refCorpus=NONE
+fi
 
 readFromParamFile "$configFile" "crfTemplate"
 readFromParamFile "$configFile" "crfCValue"
@@ -173,69 +179,68 @@ if [ ! -z "$trainDir" ]; then
 	exit 4
     fi
 
-    if [ ! -z "$prevCRFData" ]; then
-	if echo "$prevCRFData" | grep -v ":" >/dev/null; then
-	    echo "Error: -p argument must contain ':'" 1>&2
-	    exit 6
-	fi
-	prevModelDir=${prevCRFData%:*}
-	prevWorkDir=${prevCRFData#*:}
-	if [ ! -d  "$prevModelDir" ] || [ ! -d  "$prevWorkDir" ]; then
-	    echo "Error: cannot find directory '$prevModelDir' and/or '$prevWorkDir'" 1>&2
-	    exit 6
-	fi
-	rm -f "$modelDir/crfpp.model"
-	cp "$prevModelDir/crfpp.model" "$modelDir"
-	prevWorkDirAbs=$(absPath "$prevWorkDir")
-	pushd "$workDir" >/dev/null
-	for n in $(seq 0 4); do
-	    rm -rf "$n"
-	    rm -f "eval.$n"
-	    rm -f "rnd.bio.tst.predict.$n"
-	    rm -f "rnd.bio.tst.predict.$n.ptsv"
-	    ln -s "$prevWorkDirAbs/$n"
-	    ln -s "$prevWorkDirAbs/eval.$n"
-	    ln -s "$prevWorkDirAbs/rnd.bio.tst.predict.$n"
-	    ln -s "$prevWorkDirAbs/rnd.bio.tst.predict.$n.ptsv"
-	done
-	rm -f "cv-top10-predictions-reranker-training.bio"
-	ln -s "$prevWorkDirAbs/cv-top10-predictions-reranker-training.bio"
-	popd >/dev/null
+#    if [ ! -z "$prevCRFData" ]; then
+#	if echo "$prevCRFData" | grep -v ":" >/dev/null; then
+#	    echo "Error: -p argument must contain ':'" 1>&2
+#	    exit 6
+#	fi
+#	prevModelDir=${prevCRFData%:*}
+#	prevWorkDir=${prevCRFData#*:}
+#	if [ ! -d  "$prevModelDir" ] || [ ! -d  "$prevWorkDir" ]; then
+#	    echo "Error: cannot find directory '$prevModelDir' and/or '$prevWorkDir'" 1>&2
+#	    exit 6
+#	fi
+#	rm -f "$modelDir/crfpp.model"
+#	cp "$prevModelDir/crfpp.model" "$modelDir"
+#	prevWorkDirAbs=$(absPath "$prevWorkDir")
+#	pushd "$workDir" >/dev/null
+#	for n in $(seq 0 4); do
+#	    rm -rf "$n"
+#	    rm -f "eval.$n"
+#	    rm -f "rnd.bio.tst.predict.$n"
+#	    rm -f "rnd.bio.tst.predict.$n.ptsv"
+#	    ln -s "$prevWorkDirAbs/$n"
+#	    ln -s "$prevWorkDirAbs/eval.$n"
+#	    ln -s "$prevWorkDirAbs/rnd.bio.tst.predict.$n"
+#	    ln -s "$prevWorkDirAbs/rnd.bio.tst.predict.$n.ptsv"
+#	done
+#	rm -f "cv-top10-predictions-reranker-training.bio"
+#	ln -s "$prevWorkDirAbs/cv-top10-predictions-reranker-training.bio"
+#	popd >/dev/null
+#    else
+
+    if [ -s "$modelDir/crfpp.model" ] && [ -z "$forceOpt" ]; then
+	echo "Warning: CRF model already exist, skipping" 1>&2
     else
+	echo "Step 1: CRF, preparing for CV process"
 
-	if [ -s "$modelDir/crfpp.model" ] && [ -z "$forceOpt" ]; then
-	    echo "Warning: CRF model already exist, skipping" 1>&2
-	else
-	    echo "Step 1: CRF, preparing for CV process"
+	pushd "$workDir" >/dev/null
+	cv-prepdata.sh "$trainDirAbs" train 170128.297316 "--bio"  || exit $?
+	popd >/dev/null
 
-	    pushd "$workDir" >/dev/null
-	    cv-prepdata.sh "$trainDirAbs" train 170128.297316 "--bio"  || exit $?
-	    popd >/dev/null
+	echo "  Training global model..."
+	# also train a global model from the whole training set:
+	crf_learn  -c "$crfCValue"  "$templateDir/$crfTemplate"  "$workDir/rnd.bio"  "$modelDir/crfpp.model"  || exit $?
 
-	    echo "  Training global model..."
-	    # also train a global model from the whole training set:
-	    crf_learn  -c "$crfCValue"  "$templateDir/$crfTemplate"  "$workDir/rnd.bio"  "$modelDir/crfpp.model"  || exit $?
-
-	fi
     fi
     
     if [ "$refCorpus" != "NONE" ]; then
 	if [ -s "$modelDir/weka.model" ] && [ -z "$forceOpt" ]; then
 	    echo "Warning: sem reranker Weka model already exist, skipping" 1>&2
 	else
-	    if [ -z "$prevWorkDir" ]; then
-		echo "Step 2: CRF, running CV process to prepare data for semantic reranker"
+	    #	    if [ -z "$prevWorkDir" ]; then
+	    echo "Step 2: CRF, running CV process to prepare data for semantic reranker"
 
-		pushd "$workDir" >/dev/null
-		cv-runexps.sh . "$templateDirAbs/$crfTemplate" "$crfCValue" "-n 10"  || exit $?
-		popd >/dev/null
+	    pushd "$workDir" >/dev/null
+	    cv-runexps.sh . "$templateDirAbs/$crfTemplate" "$crfCValue" "-n 10"  || exit $?
+	    popd >/dev/null
 
-		# concatenate the predictions obtained from CV to use as training for the reranker
-		for n in $(seq 0 4); do
-		    cat "$workDir/rnd.bio.tst.predict.$n"
-		    echo # add empty line
-		done >"$workDir/cv-top10-predictions-reranker-training.bio"
-	    fi
+	    # concatenate the predictions obtained from CV to use as training for the reranker
+	    for n in $(seq 0 4); do
+		cat "$workDir/rnd.bio.tst.predict.$n"
+		echo # add empty line
+	    done >"$workDir/cv-top10-predictions-reranker-training.bio"
+#	    fi
 	    
 	    echo "Step 3: semantic reranker"
 	    eval "sem-reranker-train-test.sh -l '$workDir/cv-top10-predictions-reranker-training.bio' $forceOpt \"$configFile\" \"$refDataDir\" \"$modelDir/weka.model\"  \"$workDir\""
