@@ -6,13 +6,22 @@ progName=$(basename "$BASH_SOURCE")
 
 trainFile=
 testFile=
-featsOpts=
 force=0
 
 function usage {
   echo
-  echo "Usage: $progName [options]  <work dir> <weka model> <corpus file> <weka params>"
+  echo "Usage: $progName [options]  <config file> <ref data dir> <weka model> <work dir>"
   echo
+  echo "  <ref data dir>  is a directory containing  the corpus to use as reference with the"
+  echo "   semantic reranker. It can contain several files, the one to be used is specified"
+  echo "   in the config file config file as: "
+  echo "     corpusFile=<filename>[:lemma]"
+  echo "   where the optional [:lemma] part indicates to use option -l with the semantic"
+  echo "   reranker. <filename> can for instance be the same as the input training file,"
+  echo "   or a tokenized version of Europarl."
+  echo "   Remark: token is supposed to be in column 2 and lemma in column 4 for the"
+  echo "            input data; a reference file has the token as 2nd column."
+  echo "   Remark: <filename> must not contain the path."
   echo
   echo "  Options:"
   echo "    -h this help"
@@ -20,26 +29,64 @@ function usage {
   echo "       process with multiple solutions, with gold answer."
   echo "    -a <test input> apply model to <test input>: output from the CRF"
   echo "       process with multiple solutions, without gold answer."
-  echo "    -o <options for features> options for the program context-features (quoted)"
-  echo "    -f force recomputing features even if already there"
+#  echo "    -o <options for features> options for the program context-features (quoted)"
+#  echo "    -f force recomputing features even if already there"
   echo "    -h this help"
   echo
 }
 
 
 
+function readFromParamFile {
+    local file="$1"
+    local name="$2"
+    local errMsgPrefix="$3"
+    local sepa="$4"
+    local noWarningIfEmpty="$5" # left empty => warning if defined but empty value
+    local returnThisValueIfNotDefined="$6" # left empty => error and exit if not defined
+    local assignToThisNameInstead="$7" # if defined, $name is the name read from the file but the value is assigned to this name
+
+    if [ -z "$sepa" ]; then
+	sepa="="
+    fi
+    if [ ! -f  "$file" ]; then
+	echo "Error: cannot open config file '$file'" 1>&2
+	exit 3
+    fi
+    line=$(grep "^$name$sepa" "$file" | tail -n 1)
+    if [ -z "$line" ]; then
+	if [ -z "$returnThisValueIfNotDefined" ]; then
+	    echo "${errMsgPrefix}Error: parameter '$name' not found in parameter file '$file'" 1>&2
+	    exit 1
+	else
+	    res="$returnThisValueIfNotDefined"
+	fi
+    else
+	res=$(echo "$line" | cut -d "$sepa" -f 2- )
+	if [ -z "$noWarningIfEmpty" ] && [ -z "$res" ]; then
+	    echo "${errMsgPrefix}Warning: parameter '$name' is defined but empty in parameter file '$file'" 1>&2
+	fi
+    fi
+    if [ -z "$assignToThisNameInstead" ]; then
+	eval "$name=\"$res\""
+    else
+	eval "$assignToThisNameInstead=\"$res\""
+    fi
+}
+
+
 
 
 
 OPTIND=1
-while getopts 'hl:a:r:o:f' option ; do 
+while getopts 'hl:a:r:f' option ; do 
     case $option in
 	"h" ) usage
  	      exit 0;;
 	"f" ) force=1;;
 	"l" ) trainFile="$OPTARG";;
 	"a" ) testFile="$OPTARG";;
-	"o" ) featsOpts="$OPTARG";;
+#	"o" ) featsOpts="$OPTARG";;
  	"?" ) 
 	    echo "Error, unknow option." 1>&2
             printHelp=1;;
@@ -62,18 +109,68 @@ if [ ! -z "$printHelp" ]; then
     usage 1>&2
     exit 1
 fi
-workDir="$1"
-modelFile="$2"
-epFile="$3"
-wekaParams="$4"
+configFile="$1"
+refDataDir="$2"
+modelFile="$3"
+workDir="$4"
 
-    
-    
 [ -d "$workDir" ] || mkdir "$workDir"
+
+if [ ! -f "$configFile" ]; then
+    echo "Error: cannot open config file '$configFile'" 1>&2
+    exit 2
+fi
+if [ ! -d "$refDataDir" ]; then
+    echo "Error: no directory '$refDataDir' found" 1>&2
+    exit 2
+fi
+
+
+featsOpts=""
+readFromParamFile "$configFile" "refCorpus"
+refCorpusOpt=${refCorpus%:lemma}
+if [ "$refCorpusOpt" != "$refCorpus" ]; then
+    refCorpus=$refCorpusOpt
+    featsOpts="$featsOpts -l 1"
+else
+    featsOpts="$featsOpts -l 0"
+fi
+corpusFile="$refDataDir/$refCorpus"
+
+if [ "$refCorpus" == "NONE" ]; then
+    echo "Error: refCorpus set to NONE, aborting" 1>&2
+    exit 6
+fi
+if [ ! -f "$corpusFile" ]; then
+    echo "Error: no reference data $corpusFile" 1>&2
+    exit 6
+fi
+
+readFromParamFile "$configFile" "learnMethod"
+wekaParams=$(weka-id-to-parameters.sh "$learnMethod")
+
+readFromParamFile "$configFile" minFreq
+readFromParamFile "$configFile" nMostFreq
+readFromParamFile "$configFile" halfWindowSize
+readFromParamFile "$configFile" normalizeContexts
+readFromParamFile "$configFile" simMeasure
+readFromParamFile "$configFile" minConfidence
+readFromParamFile "$configFile" onlyMean
+readFromParamFile "$configFile" windowIncludeWordsINexpr
+readFromParamFile "$configFile" windowMultipleOccurrencesPosition
+readFromParamFile "$configFile" featConfidence
+readFromParamFile "$configFile" featGroups
+readFromParamFile "$configFile" featTypes
+readFromParamFile "$configFile" featStd
+
+
+featsOpts="$featsOpts -m $minFreq -n $nMostFreq -w $halfWindowSize -c $normalizeContexts -s $simMeasure -p $minConfidence -o $onlyMean -a $windowIncludeWordsINexpr -b $windowMultipleOccurrencesPosition -C $featConfidence -g $featGroups -t $featTypes -f $featStd"
+    
+    
 
 if [ ! -z "$trainFile" ]; then # features for training
     if [ $force -eq 1 ] || [ ! -s "$workDir/train-features-h.withId.tsv" ]; then
-	command="context-features-train $featsOpts \"$epFile\" \"$trainFile\" \"$workDir/train-features-h.withId.tsv\""
+	command="context-features-train $featsOpts \"$corpusFile\" \"$trainFile\" \"$workDir/train-features-h.withId.tsv\""
 #	echo "DEBUG: $command"  1>&2
 	eval "$command"
     fi
@@ -98,7 +195,7 @@ if [ ! -z "$testFile" ]; then # features for testing
 	exit 1
     fi
     if [ $force -eq 1 ] || [ ! -s  "$workDir/test-features-h.withId.tsv" ]; then
-	eval "context-features-test $featsOpts \"$epFile\" \"$testFile\" \"$workDir/test-features-h.withId.tsv\""
+	eval "context-features-test $featsOpts \"$corpusFile\" \"$testFile\" \"$workDir/test-features-h.withId.tsv\""
     fi
     cut -f 3- "$workDir/test-features-h.withId.tsv" >"$workDir/test-features-h.tsv"
     nbFeats=$(head -n 1 "$workDir/test-features-h.tsv" | wc -w)

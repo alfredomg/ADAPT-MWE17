@@ -4,7 +4,6 @@
 progName=$(basename "$BASH_SOURCE")
 
 forceOpt=""
-featsOpts=""
 
 prevCRFData=""
 
@@ -18,16 +17,7 @@ function usage {
   echo "    crfTemplate=<filename>"
   echo "  Remark: <filename> must not contain the path." 
   echo
-  echo "  <ref data dir>  is a directory containing  the corpus to use as reference with the"
-  echo "   semantic reranker. It can contain several files, the one to be used is specified"
-  echo "   in the config file config file as: "
-  echo "     corpusFile=<filename>[:lemma]"
-  echo "   where the optional [:lemma] part indicates to use option -l with the semantic"
-  echo "   reranker. <filename> can for instance be the same as the input training file,"
-  echo "   or a tokenized version of Europarl."
-  echo "   Remark: token is supposed to be in column 2 and lemma in column 4 for the"
-  echo "            input data; a reference file has the token as 2nd column."
-  echo "   Remark: <filename> must not contain the path." 
+  echo "  See sem-reranker-train-test.sh for explanations about the parameter <ref data dir>."
   echo
   echo "  Options:"
   echo "    -h this help"
@@ -129,7 +119,7 @@ while getopts 'hfl:a:p:' option ; do
 done
 shift $(($OPTIND - 1))
 if [ $# -ne 5 ]; then
-    echo "Error: expecting 5 args." 1>&2
+    echo "Error: expecting 5 args, found $#." 1>&2
     printHelp=1
 fi
 
@@ -164,58 +154,10 @@ fi
 [ -d "$workDir" ] || mkdir "$workDir"
 
 
-featsOpts=""
 readFromParamFile "$configFile" "refCorpus"
-#if [ "$refCorpus" == "EP" ]; then
-#    corpusFile="$workDir/ep.tok"
-#    featsOpts="$featsOpts -l 0"
-#elif [ "$refCorpus" == "MWEDataToken" ]; then
-#    corpusFile="$workDir/reference"
-#    featsOpts="$featsOpts -l 0"
-#elif [ "$refCorpus" == "MWEDataLemma" ]; then
-#    corpusFile="$workDir/reference"
-#    featsOpts="$featsOpts -l 1"
-#else 
-#    echo "Error: invalid option '$refCorpus' for parameter 'refCorpus' " 1>&2
-#    exit 3
-#fi
-refCorpusOpt=${refCorpus%:lemma}
-if [ "$refCorpusOpt" != "$refCorpus" ]; then 
-    refCorpus=$refCorpusOpt
-    featsOpts="$featsOpts -l 1"
-else
-    featsOpts="$featsOpts -l 0"
-fi
-corpusFile="$refDataDir/$refCorpus"
-
-if [ "$refCorpus" != "NONE" ] && [ ! -f "$corpusFile" ]; then
-    echo "Error: no reference data $corpusFile" 1>&2
-    exit 6
-fi
 
 readFromParamFile "$configFile" "crfTemplate"
 readFromParamFile "$configFile" "crfCValue"
-
-readFromParamFile "$configFile" "learnMethod"
-wekaParams=$(weka-id-to-parameters.sh "$learnMethod")
-
-readFromParamFile "$configFile" minFreq
-readFromParamFile "$configFile" nMostFreq
-readFromParamFile "$configFile" halfWindowSize
-readFromParamFile "$configFile" normalizeContexts
-readFromParamFile "$configFile" simMeasure
-readFromParamFile "$configFile" minConfidence
-readFromParamFile "$configFile" onlyMean
-readFromParamFile "$configFile" windowIncludeWordsINexpr
-readFromParamFile "$configFile" windowMultipleOccurrencesPosition
-readFromParamFile "$configFile" featConfidence
-readFromParamFile "$configFile" featGroups
-readFromParamFile "$configFile" featTypes
-readFromParamFile "$configFile" featStd
-
-
-featsOpts="$featsOpts -m $minFreq -n $nMostFreq -w $halfWindowSize -c $normalizeContexts -s $simMeasure -p $minConfidence -o $onlyMean -a $windowIncludeWordsINexpr -b $windowMultipleOccurrencesPosition -C $featConfidence -g $featGroups -t $featTypes -f $featStd"
-
 
 [ -d "$workDir" ] || mkdir "$workDir"
 [ -d "$modelDir" ] || mkdir "$modelDir"
@@ -248,7 +190,13 @@ if [ ! -z "$trainDir" ]; then
 	pushd "$workDir" >/dev/null
 	for n in $(seq 0 4); do
 	    rm -rf "$n"
+	    rm -f "eval.$n"
+	    rm -f "rnd.bio.tst.predict.$n"
+	    rm -f "rnd.bio.tst.predict.$n.ptsv"
 	    ln -s "$prevWorkDirAbs/$n"
+	    ln -s "$prevWorkDirAbs/eval.$n"
+	    ln -s "$prevWorkDirAbs/rnd.bio.tst.predict.$n"
+	    ln -s "$prevWorkDirAbs/rnd.bio.tst.predict.$n.ptsv"
 	done
 	rm -f "cv-top10-predictions-reranker-training.bio"
 	ln -s "$prevWorkDirAbs/cv-top10-predictions-reranker-training.bio"
@@ -290,11 +238,7 @@ if [ ! -z "$trainDir" ]; then
 	    fi
 	    
 	    echo "Step 3: semantic reranker"
-	    if [ ! -f "$corpusFile" ]; then
-		echo "Warning: no corpus file '$corpusFile' found, skipping reranker" 1>&2
-	    else
-		eval "sem-reranker-train-test.sh -l '$workDir/cv-top10-predictions-reranker-training.bio' $forceOpt -o \"$featsOpts\" \"$workDir\" \"$modelDir/weka.model\" \"$corpusFile\" \"$wekaParams\""
-	    fi
+	    eval "sem-reranker-train-test.sh -l '$workDir/cv-top10-predictions-reranker-training.bio' $forceOpt \"$configFile\" \"$refDataDir\" \"$modelDir/weka.model\"  \"$workDir\""
 	    
 	fi
     fi
@@ -328,7 +272,7 @@ if [ ! -z "$testDir" ]; then
 	    exit 5
 	fi
 	echo "Step 3: Applying semantic reranker"
-	eval "sem-reranker-train-test.sh -a '$workDir/crfpp-predict.bio' $forceOpt -o \"$featsOpts\" \"$workDir\" \"$modelDir/weka.model\" \"$corpusFile\" \"$wekaParams\""
+	eval "sem-reranker-train-test.sh -a '$workDir/crfpp-predict.bio' $forceOpt  \"$configFile\" \"$refDataDir\" \"$modelDir/weka.model\"  \"$workDir\""
 	# final output = output.parsemetsv ready for evaluation
     else
 	bio4eval.pl --input "$workDir/crfpp-predict.bio" --output "$workDir/output.parsemetsv"
