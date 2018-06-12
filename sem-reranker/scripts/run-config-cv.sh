@@ -200,4 +200,5 @@ else
     avgeval.pl "$workDir"/*/test-eval.out >"$workDir"/cv-eval.out
     
 fi
+echo "Done, result in $workDir/cv-eval.out"
 
