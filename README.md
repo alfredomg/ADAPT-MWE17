@@ -1,10 +1,19 @@
-# temp-mwe17
+# ADAPT CENTRE participation to the shared task on Verbal Multiword Expressions 2017 (VMWE 17)
+
+*Authors:  Alfredo Maldonado, Lifeng Han, Erwan Moreau, Ashjan Alsulaimani, Koel Dutta Chowdhury, Carl Vogel and Qun Liu.*
+
+## Links
+
+* [Shared task website](http://multiword.sourceforge.net/PHITE.php?sitesig=CONF&page=CONF_05_MWE_2017___lb__EACL__rb__)
+* [Shared Task data (gitlab)](https://gitlab.com/parseme/sharedtask-data)
+* [Our paper](https://aclanthology.coli.uni-saarland.de/papers/W17-1715/w17-1715)
+* [Reference data](todo) (can be used with our software) **TODO**
 
 ## Requirements
 
 * [CRF++](https://taku910.github.io/crfpp/) must be installed and accessible via `PATH`
 * The shared task data can be downloaded or cloned from https://gitlab.com/parseme/sharedtask-data
-* pre-tokenized Europarl data to be used as reference data can be downloaded from TODO
+* pre-tokenized Europarl data to be used as reference data can be downloaded from the link above
 
 Remark: Weka is included in the repository.
 
@@ -16,7 +25,7 @@ From the main directory run:
 source setup-path.sh
 ```
 
-This will compile the code if needed and add the relevant directories to `PATH`.
+This will compile the code if needed and add the relevant directories to `PATH`. You can add this to your `.bashrc` file in order to have the `PATH` set up whenever you open a new session.
 
 ## Usage
 
@@ -26,7 +35,7 @@ This will compile the code if needed and add the relevant directories to `PATH`.
 From the main directory:
 
 ```
-run-config-train-test.sh -l sharedtask-data/FR -a sharedtask-data/FR conf/default.conf crf/templates/ reference-data/FR/ model output
+run-config-train-test.sh -l sharedtask-data/1.0/FR -a sharedtask-data/1.0/FR conf/default.conf crf/templates/ reference-data/FR/ model output
 ```
 
 * `-l` (learn) for training using the training data provided in the directory
@@ -38,9 +47,29 @@ run-config-train-test.sh -l sharedtask-data/FR -a sharedtask-data/FR conf/defaul
   * The predictions in `parsemetsv` format are stored in `<work dir>/output.parsemetsv`
   * Evaluation results are stored in `<work dir>/test-eval.out`.
 
-# Details
 
-## Configuration files
+### Reproducing the results from the [paper](https://aclanthology.coli.uni-saarland.de/papers/W17-1715/w17-1715)
+
+Requires the reference data downloaded from the link given at the begining of this document.
+From the main directory:
+
+```
+# Generate the set of config files
+mkdir -p experiments/configs; echo conf/vary-templates-and-refcorpus.conf | expand-multi-config.pl -p experiments/configs/ >configs.list
+# Generate the tasks to run
+generate-tasks.sh -c sharedtask-data/1.0/ configs.list crf/templates/ reference-data/ experiments/cv >tasks
+# split to run 10 processes in parallel
+split -d -l 14 tasks batch.
+# run 
+for n in $(seq 0 9); do (bash batch.0$n &); done
+```
+The full process takes several hours.
+
+Remark: some of the configurations will not work with some of the datasets (conllu data or Europarl data not available).
+
+## Details
+
+### Configuration files
 
 The scripts are meant to be used with configuration files which contain values for the parameters. Examples can be found in the directory `conf`. Additionally, a batch of configuration files can be generated using e.g.:
 
@@ -58,14 +87,14 @@ mkdir configs; echo conf/options.multi-conf | expand-multi-config.pl -r 50 confi
 
 
 
-## Reference data
+### Reference data
 
-* Reference data, including pre-tokenized Europarl corpus for most languages, can be downloaded from **TODO**
+* Reference data, including pre-tokenized Europarl corpus for most languages, can be downloaded from the link given at the start of this document.
 * If using the training set as reference data, set `refCorpus=train.conllu` in the config file and specify the input directory containing the shared task data as "reference data dir".
 
 
 
-## semantic-reranker/context-features-code
+### semantic-reranker/context-features-code
 
 This is the C++ code which extracts the features for the semantic reranking. The semantic reranker consists of two main steps: feature extraction and supervised learning. The former produces features for each of the 10 candidate labelings provided by the CRF component for every sentence. The latter trains or applies a Weka model using said features; the model is meant to score every candidate, so that the highest score can be selected as the best prediction.
 
