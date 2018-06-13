@@ -59,13 +59,15 @@ mkdir -p experiments/configs; echo conf/vary-templates-and-refcorpus.conf | expa
 # Generate the tasks to run
 generate-tasks.sh -c sharedtask-data/1.0/ configs.list crf/templates/ reference-data/ experiments/cv >tasks
 # split to run 10 processes in parallel
-split -d -l 14 tasks batch.
+split -d -l 18 tasks batch.
 # run 
 for n in $(seq 0 9); do (bash batch.0$n &); done
 ```
-The full process takes several hours.
 
-Remark: some of the configurations will not work with some of the datasets (conllu data or Europarl data not available).
+* See "Configuration files" below for explanations about the generation of the config files with `expand-multi-config.pl`.
+* `generate-tasks.sh` creates directories and writes the list of commands to run.
+* The last two lines show a simple way to split the processes into 10 batches to run in parallel; the full process can take around 24 hours.
+* Some of the configurations will not work with some of the datasets (conllu data or Europarl data not available; see readme in the reference data archive - link at the beginning of this document).
 
 ## Details
 
