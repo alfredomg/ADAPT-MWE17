@@ -1,13 +1,16 @@
-# ADAPT CENTRE participation to the shared task on Verbal Multiword Expressions 2017 (VMWE 17)
+# ADAPT CENTRE participation to the shared task on Verbal Multiword Expressions 2017 (VMWE17)
 
 *Authors:  Alfredo Maldonado, Lifeng Han, Erwan Moreau, Ashjan Alsulaimani, Koel Dutta Chowdhury, Carl Vogel and Qun Liu.*
+
 
 ## Links
 
 * [Shared task website](http://multiword.sourceforge.net/PHITE.php?sitesig=CONF&page=CONF_05_MWE_2017___lb__EACL__rb__)
 * [Shared Task data (gitlab)](https://gitlab.com/parseme/sharedtask-data)
 * [Our paper](https://aclanthology.coli.uni-saarland.de/papers/W17-1715/w17-1715)
-* [Reference data](https://drive.google.com/file/d/1ConYT3A8JtRmrmnWZBxSALUMMhMphG7o/view?usp=sharing) (1.8 GB) which can be used with our software (note that it's normal that the preview doesn't work, simply click on the download link)
+* [Reference data](https://drive.google.com/file/d/1ConYT3A8JtRmrmnWZBxSALUMMhMphG7o/view?usp=sharing) (1.8 GB) (remark: it's normal that the preview doesn't work, simply click on the download link)
+  * For most of the VMWE17 languages, contains several version of Europarl which can be used as "reference corpus" with the semantic reranker.
+  * Uncompress with `tar xfj reference-data.tar.bz2`
 
 ## Requirements
 
