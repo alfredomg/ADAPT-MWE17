@@ -22,11 +22,13 @@ sub usage {
 	print $fh "Usage: $progname [options] <configs dir> <output file>\n";
 	print $fh "\n";
 	print $fh "   Reads a list of results files (as produced by the official eval script) from\n";
-	print $fh "   STDIN (e.g. ls */cv/*/eval.avg.out | $progname .....).\n";
- 	print $fh "   <configs dir> contains the config files, so that the cofig ids can be\n";
+	print $fh "   STDIN (e.g. ls experiments/*/*/cv-eval.out | $progname .....).\n";
+ 	print $fh "   <configs dir> contains the config files, so that the config ids can be\n";
  	print $fh "   replaced with the values of the parameters.\n";
- 	print $fh "   works with direct output from official eval script (eval.out) as well as \n";
- 	print $fh "   output from CV script (eval.avg.out)\n";
+	print $fh "   the path read from STDIN for every result file should contain the language\n";
+	print $fh "   and config id as last two directories, i.e: <.....>/<lang>/<config>/eval.out\n";
+# 	print $fh "   works with direct output from official eval script (eval.out) as well as \n";
+# 	print $fh "   output from CV script (eval.avg.out)\n";
  	print $fh "\n";
 }
 
@@ -125,7 +127,7 @@ while (<STDIN>) {
     my @parts = split("/", $f);
     pop(@parts);
     my $confId = pop(@parts);
-    pop(@parts);
+#    pop(@parts);
     my $lang = pop(@parts);
     my $confStr = $configs{$confId};
     if (!defined($confStr)) {
