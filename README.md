@@ -93,7 +93,9 @@ mkdir configs; echo conf/options.multi-conf | expand-multi-config.pl -r 50 confi
 ### Reference data
 
 * Reference data, including pre-tokenized Europarl corpus for most languages, can be downloaded from the link given at the start of this document.
-* If using the training set as reference data, set `refCorpus=train.conllu` in the config file and specify the input directory containing the shared task data as "reference data dir".
+* In order to use the training set as reference data, set `refCorpus=train.conllu` in the config file and specify the input directory containing the shared task data as "reference data dir".
+  * Remark: `refCorpus=train.conllu:lemma` will make the system use the lemma column instead of the token column.
+* In order to use only the CRF component (no semantic reranker), set `refCorpus=NONE` in the config file.
 
 
 
