@@ -68,6 +68,7 @@ for n in $(seq 0 9); do (bash batch.0$n &); done
 * `generate-tasks.sh` creates directories and writes the list of commands to run.
 * The last two lines show a simple way to split the processes into 10 batches to run in parallel; the full process can take around 24 hours.
 * Some of the configurations will not work with some of the datasets (conllu data or Europarl data not available; see readme in the reference data archive - link at the beginning of this document).
+* The results from a large experiment with multiple config files like the above can be collected conveniently as a TSV table: `ls experiments/cv/*/*/cv-eval.out | collect-results.pl experiments/configs/ results.tsv`
 
 ## Details
 
