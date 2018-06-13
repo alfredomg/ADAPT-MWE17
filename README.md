@@ -7,7 +7,7 @@
 * [Shared task website](http://multiword.sourceforge.net/PHITE.php?sitesig=CONF&page=CONF_05_MWE_2017___lb__EACL__rb__)
 * [Shared Task data (gitlab)](https://gitlab.com/parseme/sharedtask-data)
 * [Our paper](https://aclanthology.coli.uni-saarland.de/papers/W17-1715/w17-1715)
-* [Reference data](todo) (can be used with our software) **TODO**
+* [Reference data](https://drive.google.com/file/d/1ConYT3A8JtRmrmnWZBxSALUMMhMphG7o/view?usp=sharing) (1.8 GB) which can be used with our software (note that it's normal that the preview doesn't work, simply click on the download link)
 
 ## Requirements
 
