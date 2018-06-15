@@ -127,6 +127,7 @@ while (<STDIN>) {
     my @parts = split("/", $f);
     pop(@parts);
     my $confId = pop(@parts);
+    $confId =~ s/\.output$//;
 #    pop(@parts);
     my $lang = pop(@parts);
     my $confStr = $configs{$confId};
